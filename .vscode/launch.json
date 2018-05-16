@@ -1,0 +1,32 @@
+{
+  // https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "lkserver",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/lkserver",
+      "args": [ ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    },
+    {
+      "name": "lkclient",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/lkclient",
+      "args": [ ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    },
+  ]
+}
+

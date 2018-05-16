@@ -30,3 +30,15 @@
 *.exe
 *.out
 *.app
+
+# Build folder
+/build
+/build_make
+/build_codelite
+/build_xcode
+/build_vs
+/build_ninja
+
+# Visual Studio Code
+.vscode/.cmaketools.json
+

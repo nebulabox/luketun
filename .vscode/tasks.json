@@ -1,0 +1,60 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build.debug",
+      "type": "shell",
+      "command": "${workspaceFolder}/build.debug.sh",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": "absolute", // make output absolute path
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      "label": "rebuild.debug",
+      "type": "shell",
+      "command": "${workspaceFolder}/clean.sh && ${workspaceFolder}/build.debug.sh",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": "absolute", // make output absolute path
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      "label": "build.release",
+      "type": "shell",
+      "command": "${workspaceFolder}/clean.sh && ${workspaceFolder}/build.release.sh",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": ["relative", "${workspaceFolder}/build"], // ninja output relative path if the build folder in project
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    }
+  ]
+}
