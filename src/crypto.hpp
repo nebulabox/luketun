@@ -26,7 +26,7 @@ public:
   BLOWFISH_CTX ctx;
 
   crypto(const std::string key) {
-    Blowfish_Init(&ctx, (unsigned char *)(key.data()), key.size());
+    Blowfish_Init(&ctx, (unsigned char *)(key.data()), (int)key.size());
   }
 
   const bytes zlib_compress(const bytes &input) {
@@ -53,7 +53,7 @@ public:
     bytes ret;
     b4 L, R;
     // first 4 bytes is the real data length
-    b4 len = dt.size();
+    b4 len = (b4)dt.size();
     // then 4 bytes is reserved
     b4 reserved = 0;
     L = len;
@@ -61,7 +61,7 @@ public:
     Blowfish_Encrypt(&ctx, &L, &R);
     push_b4(ret, L);
     push_b4(ret, R);
-    size_t pos = 0;
+    int pos = 0;
     while ((pos + 8) < len) {
       L = get_b4(dt, pos);
       R = get_b4(dt, pos + 4);

@@ -15,6 +15,11 @@ if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
     add_definitions(-DDebug)
 endif()
 
+if (WIN32) 
+	#  0x0602 // Windows 8  # 0x0A00 // Windows 10  
+	add_definitions(-D_WIN32_WINNT=0x0A00)
+endif()
+
 # Export compile commands
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 ) 
 
@@ -39,22 +44,24 @@ message(STATUS "Running cmake version ${CMAKE_VERSION}")
 # endif ()
 
 #------------------------------------- Zlib -----------------------------------------#
+if (NOT WIN32) 
 find_package(ZLIB REQUIRED)
+endif()
 
 #------------------------------------- Boost -----------------------------------------#
 # Linux: sudo apt install libboost-all-dev 
 # Mac: brew install boost
-find_package( Boost 1.67 REQUIRED COMPONENTS atomic chrono context coroutine date_time exception filesystem graph iostreams locale log program_options random regex serialization signals timer system thread wave )
+# find_package( Boost 1.66 REQUIRED COMPONENTS atomic chrono context coroutine date_time exception filesystem graph iostreams locale log program_options random regex serialization signals timer system thread wave )
+set(Boost_USE_STATIC_LIBS        ON) 
+set(Boost_USE_MULTITHREADED      ON)
 if (WIN32)
+	set (BOOST_ROOT "c:/codes/boost")
 	set (BOOST_INCLUDEDIR "c:/codes/boost")
 	set (BOOST_LIBRARYDIR "c:/codes/boost/stage/lib")
+	find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options zlib bzip2)
+else ()
+	find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
 endif ()
-set(Boost_USE_STATIC_LIBS        ON) 
-set(Boost_USE_DEBUG_LIBS         OFF) 
-set(Boost_USE_RELEASE_LIBS       ON)  
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME    OFF)
-find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
 include_directories( ${Boost_INCLUDE_DIR} )
 message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 

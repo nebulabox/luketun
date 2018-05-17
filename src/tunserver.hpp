@@ -119,9 +119,9 @@ private:
     bytes header_data;
     push_b4(header_data, VER);
     push_b4(header_data, cmd_result);
-    push_b4(header_data, encrpyt_body.size()); // crypto body size
+    push_b4(header_data, (b4)encrpyt_body.size()); // crypto body size
     bytes encrpyt_header = crp.encrypt(header_data);
-    push_b2(ret, encrpyt_header.size()); // header length
+    push_b2(ret, (b2)encrpyt_header.size()); // header length
     push_bytes(ret, encrpyt_header);
     push_bytes(ret, encrpyt_body);
     return ret;
