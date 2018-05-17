@@ -1,3 +1,5 @@
+rem Recommend open folder in vs2017 directly
+
 call .\win.env.bat
 mkdir build
 cd build

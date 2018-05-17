@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.11)
-project (luketune C CXX)
-set(PROJECT_VERSION "18.5.14")
+project (luketun C CXX)
+set(PROJECT_VERSION "18.5.17")
 set(PROJECT_NAME luketune)
 
 set (BUILD_TYPE ${CMAKE_BUILD_TYPE})
@@ -13,11 +13,6 @@ if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
     message( "Debug Build >>>" )
     add_definitions(-DDEBUG)
     add_definitions(-DDebug)
-endif()
-
-if (WIN32) 
-	#  0x0602 // Windows 8  # 0x0A00 // Windows 10  
-	add_definitions(-D_WIN32_WINNT=0x0A00)
 endif()
 
 # Export compile commands
@@ -42,6 +37,10 @@ message(STATUS "Running cmake version ${CMAKE_VERSION}")
 # 	message(STATUS "Disable deprecated warnings")
 # 	add_compile_options( -Wno-deprecated)
 # endif ()
+
+if (WIN32) 
+	add_definitions(-D_WIN32_WINNT=0x0A00) # 0x0602 Windows 8  # 0x0A00 Windows 10 
+endif()
 
 #------------------------------------- Zlib -----------------------------------------#
 if (NOT WIN32) 
