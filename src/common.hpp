@@ -66,7 +66,9 @@ inline void log_err(const std::string notes, const std::string msg) {
   std::cerr << "[ERROR]" << notes << ": " << msg << std::endl;
 }
 
-inline void log_err(std::string msg) { std::cerr << "[ERROR]" << msg << std::endl; }
+inline void log_err(std::string msg) {
+  std::cerr << "[ERROR]" << msg << std::endl;
+}
 
 inline void log_err(std::string msg, std::error_code ec) {
   std::cerr << "[ERROR]" << msg << " : " << ec.message() << std::endl;
@@ -405,4 +407,5 @@ inline std::string string_from_bytes(const bytes &bs) {
 
   return ret;
 }
+
 } // namespace luke

@@ -38,10 +38,13 @@ message(STATUS "Running cmake version ${CMAKE_VERSION}")
 # 	add_compile_options( -Wno-deprecated)
 # endif ()
 
+#------------------------------------- Zlib -----------------------------------------#
+find_package(ZLIB REQUIRED)
+
 #------------------------------------- Boost -----------------------------------------#
 # Linux: sudo apt install libboost-all-dev 
 # Mac: brew install boost
-# find_package( Boost 1.67 REQUIRED COMPONENTS atomic chrono context coroutine date_time exception filesystem graph iostreams locale log program_options random regex serialization signals timer system thread wave )
+find_package( Boost 1.67 REQUIRED COMPONENTS atomic chrono context coroutine date_time exception filesystem graph iostreams locale log program_options random regex serialization signals timer system thread wave )
 if (WIN32)
 	set (BOOST_INCLUDEDIR "c:/codes/boost")
 	set (BOOST_LIBRARYDIR "c:/codes/boost/stage/lib")
@@ -53,7 +56,6 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
 include_directories( ${Boost_INCLUDE_DIR} )
-
 message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 
 #------------------------------------- project header and lib path -----------------#
@@ -84,6 +86,7 @@ message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 #------------------------------------- DEP Libs ----------------------------------------#
 set (DEP_LIBS 
 	${Boost_LIBRARIES} 
+	${ZLIB_LIBRARIES}
 	)
 
 #------------------------------------- Targets ----------------------------------------#

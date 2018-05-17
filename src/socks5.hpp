@@ -265,7 +265,6 @@ private:
   bytes out_data_;
   string remote_host_;
   string remote_port_;
-  const int MAX_BUF_SIZE = 65535;
 }; // namespace luke
 
 class socks5_server {

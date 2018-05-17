@@ -55,7 +55,11 @@
         "strstream": "cpp",
         "fstream": "cpp",
         "ios": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "__functional_03": "cpp",
+        "functional": "cpp",
+        "atomic": "cpp",
+        "future": "cpp"
     },
     "python.pythonPath": "/usr/local/bin/python",
     "C_Cpp.intelliSenseEngineFallback": "Disabled",

@@ -4,7 +4,7 @@
  * Date       :  1997
  * Description:  C implementation of the Blowfish algorithm.
  */
-#include "blowfish.h"
+#include "crypto.hpp"
 #define N               16
 
 namespace luke {

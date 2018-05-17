@@ -1,4 +1,11 @@
+#pragma once 
+
 #include "common.hpp"
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/stream.hpp>
 
 namespace luke {
 typedef b4 uInt32;
@@ -14,15 +21,35 @@ void Blowfish_Init(BLOWFISH_CTX *ctx, unsigned char *key, int keyLen);
 void Blowfish_Encrypt(BLOWFISH_CTX *ctx, b4 *xl, b4 *xr);
 void Blowfish_Decrypt(BLOWFISH_CTX *ctx, b4 *xl, b4 *xr);
 
-class blowfish {
+class crypto {
 public:
   BLOWFISH_CTX ctx;
 
-  blowfish(const std::string key) {
+  crypto(const std::string key) {
     Blowfish_Init(&ctx, (unsigned char *)(key.data()), key.size());
   }
 
-  bytes encrypt(const bytes &dt) {
+  const bytes zlib_compress(const bytes &input) {
+    using namespace boost::iostreams;
+    array_source arr_src(reinterpret_cast<char const*>(input.data()), input.size());
+    filtering_istreambuf in;
+    in.push(zlib_compressor());
+    in.push(arr_src);
+    return bytes(std::istreambuf_iterator<char>{&in}, {});
+  }
+
+  const bytes zlib_decompress(const bytes &input) {
+    using namespace boost::iostreams;
+    array_source arr_src(reinterpret_cast<char const*>(input.data()), input.size());
+    filtering_istreambuf in;
+    in.push(zlib_decompressor());
+    in.push(arr_src);
+    return bytes(std::istreambuf_iterator<char>{&in}, {});
+  }
+
+  const bytes encrypt(const bytes &input) {
+    // input -> zlib -> blowfish
+    bytes dt = zlib_compress(input);
     bytes ret;
     b4 L, R;
     // first 4 bytes is the real data length
@@ -61,7 +88,8 @@ public:
     return ret;
   }
 
-  bytes decrypt(const bytes &dt) {
+  const bytes decrypt(const bytes &dt) {
+    // blowfish -> zlib -> bytes
     if ((dt.size() % 8) != 0) {
       std::cerr << "decrypt need 8 bytes pad" << std::endl;
       return bytes();
@@ -81,7 +109,8 @@ public:
       }
     }
     ret.resize(len);
-    return ret;
+
+    return zlib_decompress(ret);
   }
 
   static void test() {
@@ -100,7 +129,7 @@ public:
       printf("Test 1 failed.\n");
       
     std::string key = "abcdefghijklmnopqrstuvwxyz";
-    blowfish bf(key);
+    crypto bf(key);
     bytes dt = bytes_from_string("BLOWFISH IS COOL!");
     if (bf.decrypt(bf.encrypt(dt)) == dt) {
       printf("Test 2 OK.\n");
