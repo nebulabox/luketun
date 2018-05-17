@@ -15,7 +15,6 @@
 #include <iostream>
 #include <list>
 #include <memory>
-#include <pthread.h>
 #include <queue>
 #include <random>
 #include <regex>

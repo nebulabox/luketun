@@ -1,0 +1,15 @@
+Mac and Linux
+================
+Run build.debug.sh
+
+Windows
+================
+Get zlib from http://www.zlib.net/.
+Get libbz2 from http://www.bzip.org/
+Get liblzma from https://tukaani.org/xz/
+Get Boost from https://www.boost.org
+
+Run win.build.boost.bat, need change it for corresponding directory.
+
+Use Visual Studio 2017 open folder directly to build CMake project.
+
