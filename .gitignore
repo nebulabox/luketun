@@ -42,3 +42,6 @@
 # Visual Studio Code
 .vscode/.cmaketools.json
 
+# Visual Studio
+.vs
+
