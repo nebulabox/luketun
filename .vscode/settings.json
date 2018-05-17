@@ -54,7 +54,8 @@
         "sstream": "cpp",
         "strstream": "cpp",
         "fstream": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "map": "cpp"
     },
     "python.pythonPath": "/usr/local/bin/python",
     "C_Cpp.intelliSenseEngineFallback": "Disabled",

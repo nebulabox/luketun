@@ -42,7 +42,7 @@ message(STATUS "Running cmake version ${CMAKE_VERSION}")
 # Linux: sudo apt install libboost-all-dev 
 # Mac: brew install boost
 # find_package( Boost 1.67 REQUIRED COMPONENTS atomic chrono context coroutine date_time exception filesystem graph iostreams locale log program_options random regex serialization signals timer system thread wave )
-find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams regex)
+find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostream program_options)
 include_directories( ${Boost_INCLUDE_DIR} )
 
 #------------------------------------- project header and lib path -----------------#
@@ -77,16 +77,14 @@ set (DEP_LIBS
 
 #------------------------------------- Targets ----------------------------------------#
 set(DB_SRC_LIST
-	src/common.hpp
-	src/const.hpp
+	src/blowfish.cpp
 	src/lkserver.cpp
 	)
 add_executable(lkserver ${DB_SRC_LIST} )
 target_link_libraries (lkserver ${DEP_LIBS})
 
 set(DB_SRC_LIST
-	src/common.hpp
-	src/const.hpp
+	src/blowfish.cpp
 	src/lkclient.cpp
 	)
 add_executable(lkclient ${DB_SRC_LIST} )

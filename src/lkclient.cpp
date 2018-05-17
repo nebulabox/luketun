@@ -1,17 +1,20 @@
 #include "common.hpp"
 #include "socks5.hpp"
+#include "blowfish.h"
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
   try {
-    boost::asio::io_context io_context;
+    luke::blowfish::test();
 
-    luke::socks5_server s(io_context, 8181);
+    // boost::asio::io_context io_context;
 
-    cout << "Socks5 server started on port 8181" << endl;
+    // luke::socks5_server s(io_context, 8181);
 
-    io_context.run();
+    // cout << "Socks5 server started on port 8181" << endl;
+
+    // io_context.run();
   } catch (std::exception &e) {
     std::cerr << "Exception: " << e.what() << "\n";
   }
