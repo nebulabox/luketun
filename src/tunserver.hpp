@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.hpp"
-#include "crypto.hpp"
+#include "tunbase.hpp"
+#include "socks5.hpp"
 
 namespace luke {
 
@@ -10,131 +10,156 @@ using namespace boost::asio::ip;
 using namespace std;
 
 class tun_server_session
-    : public std::enable_shared_from_this<tun_server_session> {
+    : public socks5_session_base,
+      public std::enable_shared_from_this<tun_server_session> {
 public:
   tun_server_session(asio::io_service &io_context, tcp::socket socket)
-      : io_context_(io_context), in_socket_(std::move(socket)),
-        out_socket_(io_context), resolver(io_context), crp("@@abort();") {}
+      : socks5_session_base(io_context, std::move(socket)) {}
 
   void start() { handle_request(); }
 
 private:
-  /* request
-  crypto header length: 2 bytes
-  crypto header data
-    client ver b4: 20180517
-    cmd b4
-    crypto body data len b4
-  crypto real body data
-  */
   void handle_request() {
     auto self(shared_from_this());
-    in_data_.resize(2);
-    asio::async_read(
-        in_socket_, asio::buffer(in_data_, 2),
-        [this, self](std::error_code ec, std::size_t length) {
-          if (ec || length != 2) {
-            log_err("Read header len", ec);
-            return;
-          }
-          b2 header_len = get_b2(in_data_, 0);
-          in_data_.resize(header_len);
-          asio::async_read(
-              in_socket_, asio::buffer(in_data_, header_len),
-              [this, self, header_len](std::error_code ec, std::size_t length) {
-                if (ec || length != header_len) {
-                  log_err("Read header data", ec);
-                  return;
-                }
-                // decrpyt header
-                bytes header = crp.decrypt(in_data_);
-                int pos = 0;
-                b4 ver = get_b4(header, pos);
-                pos += 4;
-                b2 cmd = get_b4(header, pos);
-                pos += 4;
-                b4 body_len = get_b4(header, pos);
-                pos += 4;
-                in_data_.resize(body_len);
-                asio::async_read(in_socket_, asio::buffer(in_data_, body_len),
-                                 [this, self, body_len,
-                                  cmd](std::error_code ec, std::size_t length) {
-                                   if (ec || length != body_len) {
-                                     log_err("Read body data", ec);
-                                     return;
-                                   }
-                                   // decrpyt body
-                                   bytes body = crp.decrypt(in_data_);
-                                   handle_command(cmd, body);
-                                 });
-              });
-        });
+    decode_pkg(in_socket_, [this, self](bool succ, tun_pkg &pkg) {
+      if (succ) {
+        handle_command(pkg.cmd, pkg.body);
+      }
+    });
   }
 
   void handle_command(b2 cmd, const bytes &body) {
     // dump_bytes("body", body);
     auto self(shared_from_this());
-    if (cmd == GET_URL) {
-      // get the url contents, not impl, only for testing
+    if (cmd == GET_URL) { // get the url contents, not impl, only for testing
       string urlstr = string_from_bytes(body);
       log_info("GET URL:", urlstr);
-      string content = R"(
-<!doctype html>
-<html lang=en>
-  <head>
-    <meta charset=utf-8>
-  <title>test result</title>
-  </head>
-  <body>
-    <p>I'm the content</p>
-  </body>
-</html>
-)";
-    in_data_ = make_response(OK, bytes_from_string(content));
-    boost::asio::async_write(
-        in_socket_, boost::asio::buffer(in_data_, in_data_.size()),
-        [this, self](boost::system::error_code ec, std::size_t length) {
-          if (ec) {
-            log_err("Write resp", ec);
-            return;
-          }
-        });
+      string s = "<html><head><title>t</title></head><body>body</body></html>";
+      in_data_ = encode_pkg(OK, 0, 0, bytes_from_string(s));
+      write_to(in_socket_, in_data_, [this, self](bool succ) {});
     } else if (cmd == SOCKS_CONNECT) {
-      // todo
-      // handle_response();
+      handle_socks5_request();
     }
   }
 
-  /* response
-  crypto header length: 2 bytes
-  crypto header data
-    server ver b4: 20180517
-    cmd result b4
-    crypto body data len b4
-  crypto real body data
-  */
-  const bytes make_response(b4 cmd_result, const bytes &body_data) {
-    bytes ret;
-    bytes encrpyt_body = crp.encrypt(body_data);
-    bytes header_data;
-    push_b4(header_data, VER);
-    push_b4(header_data, cmd_result);
-    push_b4(header_data, (b4)encrpyt_body.size()); // crypto body size
-    bytes encrpyt_header = crp.encrypt(header_data);
-    push_b2(ret, (b2)encrpyt_header.size()); // header length
-    push_bytes(ret, encrpyt_header);
-    push_bytes(ret, encrpyt_body);
-    return ret;
+  void handle_socks5_request() {
+    auto self(shared_from_this());
+    read_from(in_socket_, 4, [this, self](bool succ, bytes &data) {
+      // CONNECT X'01' BIND X'02' UDP ASSOCIATE X'03'
+      b1 VER = data[0]; // 0x05
+      b1 CMD = data[1];
+      b1 ATYP = data[3];
+      if (ATYP == 0x01) {
+        // IP V4 address + port
+        read_from(in_socket_, 4, [this, self](bool succ, bytes &data) {
+          b4 ipv4 = get_b4(data, 0);
+          b2 port = get_b2(data, 4);
+          remote_host_ = boost::asio::ip::address_v4(ipv4).to_string();
+          remote_port_ = std::to_string(port);
+          handle_socks5_resolve();
+        });
+      } else if (ATYP == 0x03) {
+        // DOMAINNAME, The first octet contains the number of octets of name
+        // that follow, there is no terminating NUL octet.
+        read_from(in_socket_, 1, [this, self](bool succ, bytes &data) {
+          b1 dnlen = data[0];
+          read_from(in_socket_, dnlen + 2,
+                    [this, self, dnlen](bool succ, bytes &data) {
+                      remote_host_.resize(dnlen);
+                      for (int i = 0; i < data.size(); i++) {
+                        remote_host_[i] = data[i];
+                      }
+                      b2 port = get_b2_big_endian(data, dnlen);
+                      remote_port_ = std::to_string(port);
+                      handle_socks5_resolve();
+                    });
+        });
+      } else if (ATYP == 0x04) {
+        log_err("NOT IMPL: Support IPv6 ");
+        return;
+      } else {
+        log_err("Request ATYP wrong value: " + std::to_string(ATYP));
+        return;
+      }
+    });
   }
 
-  asio::io_service &io_context_;
-  tcp::socket in_socket_;
-  tcp::socket out_socket_;
-  tcp::resolver resolver;
-  bytes in_data_;
-  bytes out_data_;
-  luke::crypto crp;
-}; // namespace luke
+  void handle_socks5_resolve() {
+    auto self(shared_from_this());
+    resolve(remote_host_, remote_port_,
+            [this, self](bool succ, tcp::resolver::iterator it) {
+              if (succ) {
+                handle_socks5_connect(it);
+              }
+            });
+  }
+
+  void handle_socks5_connect(const tcp::resolver::results_type::iterator &it) {
+    auto self(shared_from_this());
+    out_socket_.async_connect(
+        *it, [this, self](const boost::system::error_code &ec) {
+          if (ec) {
+            err("Failed to connect" + remote_host_ + ":" + remote_port_, ec);
+            return;
+          }
+          write_socks5_response();
+        });
+  }
+
+  void write_socks5_response() {
+    auto self(shared_from_this());
+    bytes dt = {0x05 /*ver*/, 0x00 /*succ*/, 0x00};
+    push_b1(dt, 0x01); // ipv4 type
+    // remote ipv4 and port
+    b4 realRemoteIP = out_socket_.remote_endpoint().address().to_v4().to_uint();
+    b2 realRemoteport = out_socket_.remote_endpoint().port();
+    push_b4_big_endian(dt, realRemoteIP);
+    push_b2_big_endian(dt, realRemoteport);
+    write_to(in_socket_, dt, [this, self](bool succ) {
+      if (succ) {
+        do_read_from_out();
+        do_read_from_in();
+      }
+    });
+  }
+
+  void do_read_from_out() {
+    auto self(shared_from_this());
+    read_from(out_socket_, [this, self](bool succ, bytes &data) {
+      if (succ) {
+        do_write_to_in(out_data_);
+      }
+    });
+  }
+
+  void do_read_from_in() {
+    auto self(shared_from_this());
+    decode_pkg(in_socket_, [this, self](bool succ, tun_pkg &pkg) {
+      if (succ) {
+        do_write_to_out(pkg.body);
+      }
+    });
+  }
+
+  void do_write_to_in(bytes &dt) {
+    auto self(shared_from_this());
+    bytes relaypkg = encode_pkg(SOCKS_CONNECT, 0, 0, dt);
+    write_to(in_socket_, relaypkg,
+             [this, self](bool succ) { do_read_from_out(); });
+  }
+
+  void do_write_to_out(bytes &dt) {
+    auto self(shared_from_this());
+    write_to(out_socket_, dt, [this, self](bool succ) {
+      if (succ) {
+        do_read_from_in();
+      }
+    });
+  }
+
+  std::string remote_host_;
+  std::string remote_port_;
+};
 
 class tun_server {
 public:

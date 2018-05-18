@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 3.10)
+
 project (luketun C CXX)
 set(PROJECT_VERSION "18.5.17")
-set(PROJECT_NAME luketune)
+set(PROJECT_NAME luketun)
 
+#------------------------------------- Common Settings ----------------------------------------#
 set (BUILD_TYPE ${CMAKE_BUILD_TYPE})
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -31,13 +33,13 @@ endif ()
 
 message(STATUS "Running cmake version ${CMAKE_VERSION}")
 
+#------------------------------------- Compiler Flags----------------------------------------#
 # disable all warnings
 # add_compile_options( -w  )
 # if (APPLE) 
 # 	message(STATUS "Disable deprecated warnings")
 # 	add_compile_options( -Wno-deprecated)
 # endif ()
-
 if (WIN32) 
 	add_definitions(-D_WIN32_WINNT=0x0A00) # 0x0602 Windows 8  # 0x0A00 Windows 10 
 endif()
@@ -45,9 +47,11 @@ endif()
 #------------------------------------- Zlib -----------------------------------------#
 if (NOT WIN32) 
 find_package(ZLIB REQUIRED)
+include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
 
 #------------------------------------- Thread -----------------------------------------#
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 find_package( Threads REQUIRED)
 
 #------------------------------------- Boost -----------------------------------------#
@@ -65,7 +69,6 @@ else ()
 	find_package( Boost 1.65 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
 endif ()
 include_directories( ${Boost_INCLUDE_DIR} )
-message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 
 #------------------------------------- project header and lib path -----------------#
 # Other external source headers
@@ -73,6 +76,12 @@ message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 # include_directories( ${CMAKE_BINARY_DIR}/libs/mariadb-connector-c/include/ )
 # link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/external/lib )
 # include_directories( "libs/asio/include" )
+
+#------------------------------------- Checkings ----------------------------------------#
+# INCLUDE(CheckIncludeFileCXX)
+# INCLUDE(CheckFunctionExists)
+# INCLUDE(CheckTypeSize)
+# INCLUDE(CheckSymbolExists)
 
 #------------------------------------- Source File List ----------------------------------------#
 # set(client_SRC_LIST 1.cpp 2.hpp 3.h 4.cxx ) # add files manually
@@ -98,6 +107,7 @@ set (DEP_LIBS
 	${ZLIB_LIBRARIES}
 	Threads::Threads
 	)
+message(STATUS 	"All dep libs: ${DEP_LIBS}" )
 
 #------------------------------------- Targets ----------------------------------------#
 set(DB_SRC_LIST

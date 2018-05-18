@@ -59,7 +59,8 @@
         "__functional_03": "cpp",
         "functional": "cpp",
         "atomic": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "thread": "cpp"
     },
     "python.pythonPath": "/usr/local/bin/python",
     "C_Cpp.intelliSenseEngineFallback": "Disabled",

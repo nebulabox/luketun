@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.hpp"
-#include "crypto.hpp"
+#include "tunbase.hpp"
+#include "socks5.hpp"
 
 namespace luke {
 
@@ -10,11 +10,11 @@ using namespace boost::asio::ip;
 using namespace std;
 
 class tun_client_session
-    : public std::enable_shared_from_this<tun_client_session> {
+    : public socks5_session_base,
+      public std::enable_shared_from_this<tun_client_session> {
 public:
   tun_client_session(asio::io_service &io_context, tcp::socket socket)
-      : io_context_(io_context), in_socket_(std::move(socket)),
-        out_socket_(io_context), resolver(io_context), crp("@@abort();") {}
+      : socks5_session_base(io_context, std::move(socket)) {}
 
   void start() {
     auto self(shared_from_this());
@@ -25,8 +25,7 @@ public:
         [this, self](const boost::system::error_code &ec,
                      tcp::resolver::iterator it) {
           out_socket_.async_connect(
-              *it,
-              [this, self](const boost::system::error_code &ec) {
+              *it, [this, self](const boost::system::error_code &ec) {
                 if (ec) {
                   log_err("Failed to connect tun server" + tunserver_host_ +
                               ":" + tunserver_port_,
@@ -35,212 +34,90 @@ public:
                 }
                 // log_info("Connected to ", remote_host_ + ":" + remote_port_);
                 // test get url
-                bytes data = bytes_from_string("https://www.baidu.com");
-                bytes req = make_request(GET_URL, data);
-                boost::asio::async_write(
-                    out_socket_, boost::asio::buffer(req, req.size()),
-                    [this, self](boost::system::error_code ec,
-                                 std::size_t length) {
-                      if (ec) {
-                        log_err("Write to out", ec);
-                        in_socket_.close();
-                        out_socket_.close();
-                        return;
-                      }
-                      do_read_from_out();
-                    });
+                // bytes data = bytes_from_string("https://www.baidu.com");
+                // bytes req = encode_pkg(GET_URL, 0, 0, data);
+                // boost::asio::async_write(
+                //     out_socket_, boost::asio::buffer(req, req.size()),
+                //     [this, self](boost::system::error_code ec,
+                //                  std::size_t length) {
+                //       if (ec) {
+                //         log_err("Write to out", ec);
+                //         in_socket_.close();
+                //         out_socket_.close();
+                //         return;
+                //       }
+                //       do_read_from_out();
+                //     });
 
                 // start from socks5 session negotiation
-                // handle_negotiation();
+                handle_socks5_negotiation();
               });
         });
   }
 
 private:
-  void handle_negotiation() {
+  void handle_socks5_negotiation() {
     auto self(shared_from_this());
-
-    in_data_.resize(1);
-    asio::async_read(
-        in_socket_, asio::buffer(in_data_, 1),
-        [this, self](std::error_code ec, std::size_t length) {
-          if (ec || length != 1) {
-            log_err("Read VER", ec);
+    read_from(in_socket_, 2, [this, self](bool succ, bytes &data) {
+      if (!succ)
+        return;
+      b1 VER = data[0];
+      b1 NMETHODS = data[1];
+      read_from(in_socket_, NMETHODS, [this, self](bool succ, bytes &data) {
+        if (!succ)
+          return;
+        // return X'00' NO AUTHENTICATION REQUIRED
+        bytes resp = {0x05, 0x00};
+        write_to(in_socket_, resp, [this, self](bool succ) {
+          if (!succ)
             return;
-          }
-          b1 VER = this->in_data_[0];
-          // out << "Client Use Socks VER: " << VER << endl;
-
-          in_data_.resize(1);
-          asio::async_read(
-              this->in_socket_, asio::buffer(this->in_data_, 1),
-              [this, self](std::error_code ec, std::size_t length) {
-                if (ec || length != 1) {
-                  log_err("read NMETHODS", ec);
-                  return;
-                }
-                b1 NMETHODS = this->in_data_[0];
-                // cout << "NMETHODS: " << NMETHODS << endl;
-
-                in_data_.resize(NMETHODS);
-                asio::async_read(
-                    this->in_socket_, asio::buffer(this->in_data_, NMETHODS),
-                    [this, self, NMETHODS](std::error_code ec,
-                                           std::size_t length) {
-                      if (ec || length != NMETHODS) {
-                        log_err("read METHODS", ec);
-                        return;
-                      }
-                      // dump_bytes("METHODS", in_data_);
-                      // return X'00' NO AUTHENTICATION REQUIRED
-                      this->in_data_ = {0x05, 0x00};
-                      asio::async_write(
-                          this->in_socket_,
-                          asio::buffer(this->in_data_, this->in_data_.size()),
-                          [this, self](std::error_code ec, std::size_t length) {
-                            if (ec) {
-                              log_err("return negotiation", ec);
-                              return;
-                            }
-                            // relay start
-                            // socks5 client <->[in]tunclient[out]<->
-                            // [in]tunserver[out] <-> real site
-                            do_read_from_out();
-                            do_read_from_in();
-                          });
-                    });
-              });
+          do_read_from_out();
+          do_read_from_in();
         });
+      });
+    });
   }
 
   void do_read_from_out() {
     auto self(shared_from_this());
-    out_data_.resize(2);
-    asio::async_read(
-        out_socket_, asio::buffer(out_data_, 2),
-        [this, self](std::error_code ec, std::size_t length) {
-          if (ec || length != 2) {
-            log_err("[out]Read header len", ec);
-            return;
-          }
-          b2 header_len = get_b2(out_data_, 0);
-          out_data_.resize(header_len);
-          asio::async_read(
-              out_socket_, asio::buffer(out_data_, header_len),
-              [this, self, header_len](std::error_code ec, std::size_t length) {
-                if (ec || length != header_len) {
-                  log_err("[out]Read header data", ec);
-                  return;
-                }
-                // decrpyt header
-                bytes header = crp.decrypt(out_data_);
-                int pos = 0;
-                b4 ver = get_b4(header, pos);
-                pos += 4;
-                b2 cmd = get_b4(header, pos);
-                pos += 4;
-                b4 body_len = get_b4(header, pos);
-                pos += 4;
-                out_data_.resize(body_len);
-                asio::async_read(out_socket_, asio::buffer(out_data_, body_len),
-                                 [this, self, body_len](std::error_code ec,
-                                                        std::size_t length) {
-                                   if (ec || length != body_len) {
-                                     log_err("[out]Read body data", ec);
-                                     return;
-                                   }
-                                   // decrpyt body
-                                   bytes body = crp.decrypt(out_data_);
-                                   //  dump_bytes("[out]body", body);
-                                   // cout << string_from_bytes(body);
-                                   // now we have body from out, send it to in
-                                   do_write_to_in(body, body.size());
-                                 });
-              });
-        });
+    decode_pkg(out_socket_, [this, self](bool succ, tun_pkg &pkg) {
+      if (succ) {
+        do_write_to_in(pkg.body);
+      }
+    });
   }
 
   void do_read_from_in() {
     auto self(shared_from_this());
-    in_data_.resize(MAX_BUF_SIZE);
-    in_socket_.async_receive(
-        boost::asio::buffer(in_data_, MAX_BUF_SIZE),
-        [this, self](boost::system::error_code ec, std::size_t length) {
-          if (ec) {
-            log_err("Read from in", ec);
-            in_socket_.close();
-            out_socket_.close();
-            return;
-          }
-          // dump_bytes("do_read_from_in", in_data_);
-          // we got data from in, relay it to out
-          do_write_to_out(in_data_, length);
-        });
+    read_from(in_socket_, [this, self](bool succ, bytes &data) {
+      if (succ) {
+        do_write_to_out(data);
+      }
+    });
   }
 
-  void do_write_to_in(bytes &dt, std::size_t length) {
+  void do_write_to_in(bytes &dt) {
     auto self(shared_from_this());
-    boost::asio::async_write(
-        in_socket_, boost::asio::buffer(dt, length),
-        [this, self](boost::system::error_code ec, std::size_t length) {
-          if (ec) {
-            log_err("Write to in", ec);
-            in_socket_.close();
-            out_socket_.close();
-            return;
-          }
-          do_read_from_out();
-        });
+    write_to(in_socket_, dt, [this, self](bool succ) {
+      if (succ) {
+        do_read_from_out();
+      }
+    });
   }
 
-  void do_write_to_out(bytes &dt, std::size_t length) {
+  void do_write_to_out(bytes &dt) {
     auto self(shared_from_this());
-    bytes relaypkg = make_request(SOCKS_CONNECT, dt);
-    boost::asio::async_write(
-        out_socket_, boost::asio::buffer(relaypkg, relaypkg.size()),
-        [this, self](boost::system::error_code ec, std::size_t length) {
-          if (ec) {
-            log_err("Write to out", ec);
-            in_socket_.close();
-            out_socket_.close();
-            return;
-          }
-          do_read_from_in();
-        });
+    bytes relaypkg = encode_pkg(SOCKS_CONNECT, 0, 0, dt);
+    write_to(out_socket_, relaypkg, [this, self](bool succ) {
+      if (succ) {
+        do_read_from_in();
+      }
+    });
   }
 
-  /* request
-  crypto header length: 2 bytes
-  crypto header data
-    client ver b4: 20180517
-    cmd b4
-    crypto body data len b4
-  crypto real body data
-  */
-  const bytes make_request(b4 cmd, const bytes &body_data) {
-    bytes ret;
-    bytes encrpyt_body = crp.encrypt(body_data);
-    bytes header_data;
-    push_b4(header_data, VER);
-    push_b4(header_data, cmd);
-    push_b4(header_data, (b4)encrpyt_body.size()); // crypto body size
-    bytes encrpyt_header = crp.encrypt(header_data);
-    push_b2(ret, (b2)encrpyt_header.size()); // header length
-    push_bytes(ret, encrpyt_header);
-    push_bytes(ret, encrpyt_body);
-    return ret;
-  }
-
-  asio::io_service &io_context_;
-  tcp::socket in_socket_;
-  tcp::socket out_socket_;
-  tcp::resolver resolver;
-  bytes in_data_;
-  bytes out_data_;
   string tunserver_host_;
   string tunserver_port_;
-  luke::crypto crp;
-}; // namespace luke
+};
 
 class tun_client {
 public:

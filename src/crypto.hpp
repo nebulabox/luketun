@@ -1,10 +1,10 @@
-#pragma once 
+#pragma once
 
 #include "common.hpp"
-#include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/stream.hpp>
 
 namespace luke {
@@ -29,28 +29,33 @@ public:
     Blowfish_Init(&ctx, (unsigned char *)(key.data()), (int)key.size());
   }
 
-  const bytes zlib_compress(const bytes &input) {
+  void zlib_compress(const bytes &input, bytes &out) {
     using namespace boost::iostreams;
-    array_source arr_src(reinterpret_cast<char const*>(input.data()), input.size());
+    out.clear();
+    array_source arr_src(reinterpret_cast<char const *>(input.data()),
+                         input.size());
     filtering_istreambuf in;
     in.push(zlib_compressor());
     in.push(arr_src);
-    return bytes(std::istreambuf_iterator<char>{&in}, {});
+    out.assign(std::istreambuf_iterator<char>{&in}, {});
   }
 
-  const bytes zlib_decompress(const bytes &input) {
+  void zlib_decompress(const bytes &input, bytes &out) {
     using namespace boost::iostreams;
-    array_source arr_src(reinterpret_cast<char const*>(input.data()), input.size());
+    out.clear();
+    array_source arr_src(reinterpret_cast<char const *>(input.data()),
+                         input.size());
     filtering_istreambuf in;
     in.push(zlib_decompressor());
     in.push(arr_src);
-    return bytes(std::istreambuf_iterator<char>{&in}, {});
+    out.assign(std::istreambuf_iterator<char>{&in}, {});
   }
 
-  const bytes encrypt(const bytes &input) {
+  void encrypt(const bytes &input, bytes &out) {
     // input -> zlib -> blowfish
-    bytes dt = zlib_compress(input);
-    bytes ret;
+    out.clear();
+    bytes dt;
+    zlib_compress(input, dt);
     b4 L, R;
     // first 4 bytes is the real data length
     b4 len = (b4)dt.size();
@@ -59,15 +64,15 @@ public:
     L = len;
     R = reserved;
     Blowfish_Encrypt(&ctx, &L, &R);
-    push_b4(ret, L);
-    push_b4(ret, R);
+    push_b4(out, L);
+    push_b4(out, R);
     int pos = 0;
     while ((pos + 8) < len) {
       L = get_b4(dt, pos);
       R = get_b4(dt, pos + 4);
       Blowfish_Encrypt(&ctx, &L, &R);
-      push_b4(ret, L);
-      push_b4(ret, R);
+      push_b4(out, L);
+      push_b4(out, R);
       pos += 8;
     }
     bytes left;
@@ -82,17 +87,17 @@ public:
       L = get_b4(left, 0);
       R = get_b4(left, 4);
       Blowfish_Encrypt(&ctx, &L, &R);
-      push_b4(ret, L);
-      push_b4(ret, R);
+      push_b4(out, L);
+      push_b4(out, R);
     }
-    return ret;
   }
 
-  const bytes decrypt(const bytes &dt) {
+  void decrypt(const bytes &dt, bytes &out) {
+    out.clear();
     // blowfish -> zlib -> bytes
     if ((dt.size() % 8) != 0) {
       std::cerr << "decrypt need 8 bytes pad" << std::endl;
-      return bytes();
+      return;
     }
     bytes ret;
     b4 L, R;
@@ -110,7 +115,7 @@ public:
     }
     ret.resize(len);
 
-    return zlib_decompress(ret);
+    zlib_decompress(ret, out);
   }
 
   static void test() {
@@ -127,23 +132,31 @@ public:
       printf("Test 1 OK.\n");
     else
       printf("Test 1 failed.\n");
-      
+
     std::string key = "abcdefghijklmnopqrstuvwxyz";
     crypto bf(key);
     bytes dt = bytes_from_string("BLOWFISH IS COOL!");
-    if (bf.decrypt(bf.encrypt(dt)) == dt) {
+    bytes out;
+    bytes out2;
+    bf.encrypt(dt, out);
+    bf.decrypt(out, out2);
+    if (out2 == dt) {
       printf("Test 2 OK.\n");
     } else {
       printf("Test 2 failed.\n");
     }
     dt = bytes_from_string("BLOWFISH");
-    if (bf.decrypt(bf.encrypt(dt)) == dt) {
+    bf.encrypt(dt, out);
+    bf.decrypt(out, out2);
+    if (out2 == dt) {
       printf("Test 3 OK.\n");
     } else {
       printf("Test 3 failed.\n");
     }
     dt = bytes_from_string("BLOWFISH1234567");
-    if (bf.decrypt(bf.encrypt(dt)) == dt) {
+    bf.encrypt(dt, out);
+    bf.decrypt(out, out2);
+    if (out2 == dt) {
       printf("Test 4 OK.\n");
     } else {
       printf("Test 4 failed.\n");
