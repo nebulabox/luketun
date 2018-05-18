@@ -12,7 +12,7 @@ using namespace std;
 class tun_client_session
     : public std::enable_shared_from_this<tun_client_session> {
 public:
-  tun_client_session(asio::io_context &io_context, tcp::socket socket)
+  tun_client_session(asio::io_service &io_context, tcp::socket socket)
       : io_context_(io_context), in_socket_(std::move(socket)),
         out_socket_(io_context), resolver(io_context), crp("@@abort();") {}
 
@@ -21,15 +21,11 @@ public:
     tunserver_host_ = "127.0.0.1";
     tunserver_port_ = "2484";
     resolver.async_resolve(
-        tunserver_host_, tunserver_port_,
+        tcp::resolver::query(tunserver_host_, tunserver_port_),
         [this, self](const boost::system::error_code &ec,
-                     asio::ip::tcp::resolver::results_type results) {
-          if (ec || results.size() <= 0) {
-            log_err("Failed to resolve tun server host", ec);
-            return;
-          }
+                     tcp::resolver::iterator it) {
           out_socket_.async_connect(
-              *(results.begin()),
+              *it,
               [this, self](const boost::system::error_code &ec) {
                 if (ec) {
                   log_err("Failed to connect tun server" + tunserver_host_ +
@@ -235,7 +231,7 @@ private:
     return ret;
   }
 
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::socket in_socket_;
   tcp::socket out_socket_;
   tcp::resolver resolver;
@@ -248,7 +244,7 @@ private:
 
 class tun_client {
 public:
-  tun_client(asio::io_context &io_context, short port)
+  tun_client(asio::io_service &io_context, short port)
       : io_context_(io_context),
         acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
         in_socket_(io_context) {
@@ -267,7 +263,7 @@ private:
       do_accept();
     });
   }
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::acceptor acceptor_;
   tcp::socket in_socket_;
 };

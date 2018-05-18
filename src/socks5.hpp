@@ -11,7 +11,7 @@ using namespace std;
 class socks5_server_session
     : public std::enable_shared_from_this<socks5_server_session> {
 public:
-  socks5_server_session(asio::io_context &io_context, tcp::socket socket)
+  socks5_server_session(asio::io_service &io_context, tcp::socket socket)
       : io_context_(io_context), in_socket_(std::move(socket)),
         out_socket_(io_context), resolver(io_context) {}
 
@@ -148,14 +148,14 @@ private:
   void handle_resolve() {
     auto self(shared_from_this());
     resolver.async_resolve(
-        remote_host_, remote_port_,
+      tcp::resolver::query(remote_host_, remote_port_),
         [this, self](const boost::system::error_code &ec,
-                     asio::ip::tcp::resolver::results_type results) {
-          if (ec || results.size() <= 0) {
+                     tcp::resolver::iterator it) {
+          if (ec) {
             log_err("Resolve", ec);
             return;
           }
-          handle_connect(results.begin());
+          handle_connect(it);
         });
   }
 
@@ -257,7 +257,7 @@ private:
         });
   }
 
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::socket in_socket_;
   tcp::socket out_socket_;
   tcp::resolver resolver;
@@ -269,7 +269,7 @@ private:
 
 class socks5_server {
 public:
-  socks5_server(asio::io_context &io_context, short port)
+  socks5_server(asio::io_service &io_context, short port)
       : io_context_(io_context),
         acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
         in_socket_(io_context) {
@@ -289,7 +289,7 @@ private:
       do_accept();
     });
   }
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::acceptor acceptor_;
   tcp::socket in_socket_;
 };

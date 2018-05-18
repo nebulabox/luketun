@@ -31,7 +31,6 @@
 
 #include "const.hpp"
 
-#define BOOST_ASIO_NO_DEPRECATED
 #include <boost/asio.hpp>
 
 // Debug Options

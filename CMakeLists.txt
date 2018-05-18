@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required (VERSION 3.10)
 project (luketun C CXX)
 set(PROJECT_VERSION "18.5.17")
 set(PROJECT_NAME luketune)
@@ -47,6 +47,9 @@ if (NOT WIN32)
 find_package(ZLIB REQUIRED)
 endif()
 
+#------------------------------------- Thread -----------------------------------------#
+find_package( Threads REQUIRED)
+
 #------------------------------------- Boost -----------------------------------------#
 # Linux: sudo apt install libboost-all-dev 
 # Mac: brew install boost
@@ -57,9 +60,9 @@ if (WIN32)
 	set (BOOST_ROOT "c:/codes/boost")
 	set (BOOST_INCLUDEDIR "c:/codes/boost")
 	set (BOOST_LIBRARYDIR "c:/codes/boost/stage/lib")
-	find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options zlib bzip2)
+	find_package( Boost 1.65 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options zlib bzip2)
 else ()
-	find_package( Boost 1.67 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
+	find_package( Boost 1.65 REQUIRED COMPONENTS filesystem system iostreams date_time regex program_options)
 endif ()
 include_directories( ${Boost_INCLUDE_DIR} )
 message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
@@ -93,6 +96,7 @@ message(STATUS 	"Boost libs: ${Boost_LIBRARIES}" )
 set (DEP_LIBS 
 	${Boost_LIBRARIES} 
 	${ZLIB_LIBRARIES}
+	Threads::Threads
 	)
 
 #------------------------------------- Targets ----------------------------------------#

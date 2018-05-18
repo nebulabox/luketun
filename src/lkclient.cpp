@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
   try {
-    boost::asio::io_context io_context;
+    boost::asio::io_service io_context;
     luke::tun_client s(io_context, 8181);
     cout << "Tun client local server started on port 8181" << endl;
     io_context.run();

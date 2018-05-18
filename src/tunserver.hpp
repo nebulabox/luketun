@@ -12,7 +12,7 @@ using namespace std;
 class tun_server_session
     : public std::enable_shared_from_this<tun_server_session> {
 public:
-  tun_server_session(asio::io_context &io_context, tcp::socket socket)
+  tun_server_session(asio::io_service &io_context, tcp::socket socket)
       : io_context_(io_context), in_socket_(std::move(socket)),
         out_socket_(io_context), resolver(io_context), crp("@@abort();") {}
 
@@ -127,7 +127,7 @@ private:
     return ret;
   }
 
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::socket in_socket_;
   tcp::socket out_socket_;
   tcp::resolver resolver;
@@ -138,7 +138,7 @@ private:
 
 class tun_server {
 public:
-  tun_server(asio::io_context &io_context, short port)
+  tun_server(asio::io_service &io_context, short port)
       : io_context_(io_context),
         acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
         in_socket_(io_context) {
@@ -157,7 +157,7 @@ private:
       do_accept();
     });
   }
-  asio::io_context &io_context_;
+  asio::io_service &io_context_;
   tcp::acceptor acceptor_;
   tcp::socket in_socket_;
 };
