@@ -55,6 +55,24 @@
           "message": 5
         }
       }
-    }
+    },
+    {
+      "label": "clean.all",
+      "type": "shell",
+      "command": "${workspaceFolder}/clean.sh",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": "absolute", // make output absolute path
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
   ]
 }

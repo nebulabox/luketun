@@ -1,16 +1,28 @@
 {
   // https://go.microsoft.com/fwlink/?linkid=830387
+  // ${workspaceFolder} - the path of the folder opened in VS Code
+  // ${workspaceFolderBasename} - the name of the folder opened in VS Code without any slashes (/)
+  // ${file} - the current opened file
+  // ${relativeFile} - the current opened file relative to workspaceFolder
+  // ${fileBasename} - the current opened file's basename
+  // ${fileBasenameNoExtension} - the current opened file's basename with no file extension
+  // ${fileDirname} - the current opened file's dirname
+  // ${fileExtname} - the current opened file's extension
+  // ${cwd} - the task runner's current working directory on startup
+  // ${lineNumber} - the current selected line number in the active file
+  // ${selectedText} - the current selected text in the active file
+  // OS Env : ${env:PATH}
+
   "version": "0.2.0",
   "configurations": [
-
     {
       "name": "lkserver",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/lkserver",
+      "program": "${env:HOME}/cmake_temp/luketun/debug/lkserver",
       "args": [ ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${env:HOME}/cmake_temp/luketun/debug/",
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb"
@@ -19,10 +31,10 @@
       "name": "lkclient",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/lkclient",
+      "program": "${env:HOME}/cmake_temp/luketun/debug/lkclient",
       "args": [ ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${env:HOME}/cmake_temp/luketun/debug/",
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb"
