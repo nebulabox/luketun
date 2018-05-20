@@ -4,12 +4,13 @@ Run build.debug.sh
 
 Windows
 ================
-Get zlib from http://www.zlib.net/.
-Get libbz2 from http://www.bzip.org/
-Get liblzma from https://tukaani.org/xz/
-Get Boost from https://www.boost.org
-
-Run win.build.boost.bat, need change it for corresponding directory.
+(recommend)Download Windows Boost boost_1_67_0-msvc-14.1-64.exe from https://www.boost.org/users/download/, Install it to c:\boost
+(opt) If build boost manually
+    Get Boost from https://www.boost.org
+    Get zlib from http://www.zlib.net/.
+    Get libbz2 from http://www.bzip.org/
+    Get liblzma from https://tukaani.org/xz/
+    use win.build.boost.bat
 
 Use Visual Studio 2017 open folder directly to build CMake project.
 
