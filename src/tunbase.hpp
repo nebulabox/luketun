@@ -25,14 +25,9 @@ struct tun_pkg {
   bytes body;
 };
 
-typedef std::function<void(bool succ, tun_pkg &pkg)> decoded_handler;
-typedef std::function<void(bool succ)> written_handler;
-typedef std::function<void(bool succ, bytes &data)> readed_handler;
-typedef std::function<void(bool succ, tcp::resolver::iterator it)>
-    resolved_handler;
-
 class tun_session_base {
 public:
+  ~tun_session_base() { log_info("Dealloc", "tun_session_base"); }
   tun_session_base(asio::io_service &io_context, tcp::socket socket)
       : io_context_(io_context), in_socket_(std::move(socket)),
         out_socket_(io_context), resolver(io_context), crp("@@abort();") {}
@@ -75,7 +70,8 @@ public:
     log_err(msg, ec);
   }
 
-  void decode_pkg(tcp::socket &sk, decoded_handler handler) {
+  void decode_pkg(tcp::socket &sk,
+                  function<void(bool succ, tun_pkg &pkg)> handler) {
     tun_pkg pkg;
     bytes data;
     data.resize(2);
@@ -125,7 +121,7 @@ public:
         });
   }
 
-  void write_to(tcp::socket &sk, bytes &bs, written_handler handler) {
+  void write_to(tcp::socket &sk, bytes &bs, function<void(bool succ)> handler) {
     boost::asio::async_write(
         sk, boost::asio::buffer(bs, bs.size()),
         [&](boost::system::error_code ec, std::size_t length) {
@@ -137,7 +133,8 @@ public:
         });
   }
 
-  void read_from(tcp::socket &sk, readed_handler handler) {
+  void read_from(tcp::socket &sk,
+                 function<void(bool succ, bytes &data)> handler) {
     // read any bytes
     bytes dt;
     dt.resize(MAX_BUF_SIZE);
@@ -152,7 +149,8 @@ public:
                      });
   }
 
-  void read_from(tcp::socket &sk, size_t count, readed_handler handler) {
+  void read_from(tcp::socket &sk, size_t count,
+                 function<void(bool succ, bytes &data)> handler) {
     // read certain numbers
     bytes dt;
     dt.resize(count);
@@ -170,7 +168,9 @@ public:
                      });
   }
 
-  void resolve(string host, string port, resolved_handler handler) {
+  void
+  resolve_addr(string host, string port,
+               function<void(bool succ, tcp::resolver::iterator it)> handler) {
     resolver.async_resolve(
         tcp::resolver::query(host, port),
         [&](const boost::system::error_code &ec, tcp::resolver::iterator it) {
@@ -182,12 +182,22 @@ public:
         });
   }
 
+  void connect_to(tcp::socket &sk,
+                  const tcp::resolver::results_type::iterator &it,
+                  function<void(bool)> complete) {
+    sk.async_connect(*it, [&](const boost::system::error_code &ec) {
+      if (ec) {
+        log_err("Failed to connect", ec);
+        return complete(false);
+      }
+      return complete(true);
+    });
+  }
+
   asio::io_service &io_context_;
   tcp::socket in_socket_;
   tcp::socket out_socket_;
   tcp::resolver resolver;
-  bytes in_data_;
-  bytes out_data_;
   luke::crypto crp;
 };
 

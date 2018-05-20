@@ -7,8 +7,9 @@ using namespace std;
 int main(int argc, char *argv[]) {
   try {
     boost::asio::io_service io_context;
-    luke::tun_client s(io_context, 8181);
-    cout << "Tun client local server started on port 8181" << endl;
+	luke::socks5_server s(io_context, 8181);
+    //luke::tun_client s(io_context, 8181);
+    cout << "Local server started on port 8181" << endl;
     io_context.run();
   } catch (std::exception &e) {
     std::cerr << "Exception: " << e.what() << "\n";

@@ -111,14 +111,26 @@ message(STATUS 	"All dep libs: ${DEP_LIBS}" )
 
 #------------------------------------- Targets ----------------------------------------#
 set(DB_SRC_LIST
+	src/common.hpp
+	src/const.hpp
+	src/crypto.hpp
+	src/socks5server.hpp
+	src/tunbase.hpp
 	src/blowfish.cpp
+	src/tunserver.hpp
 	src/lkserver.cpp
 	)
 add_executable(lkserver ${DB_SRC_LIST} )
 target_link_libraries (lkserver ${DEP_LIBS})
 
 set(DB_SRC_LIST
+	src/common.hpp
+	src/const.hpp
+	src/crypto.hpp
+	src/socks5server.hpp
+	src/tunbase.hpp
 	src/blowfish.cpp
+	src/tunclient.hpp
 	src/lkclient.cpp
 	)
 add_executable(lkclient ${DB_SRC_LIST} )

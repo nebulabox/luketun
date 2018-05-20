@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tunbase.hpp"
-#include "socks5.hpp"
+#include "socks5server.hpp"
 
 namespace luke {
 
@@ -50,33 +50,17 @@ public:
                 //     });
 
                 // start from socks5 session negotiation
-                handle_socks5_negotiation();
+				handle_socks5_negotiation([this, self](bool succ) {
+					if (succ) {
+						do_read_from_out();
+						do_read_from_in();
+					}
+				});
               });
         });
   }
 
 private:
-  void handle_socks5_negotiation() {
-    auto self(shared_from_this());
-    read_from(in_socket_, 2, [this, self](bool succ, bytes &data) {
-      if (!succ)
-        return;
-      b1 VER = data[0];
-      b1 NMETHODS = data[1];
-      read_from(in_socket_, NMETHODS, [this, self](bool succ, bytes &data) {
-        if (!succ)
-          return;
-        // return X'00' NO AUTHENTICATION REQUIRED
-        bytes resp = {0x05, 0x00};
-        write_to(in_socket_, resp, [this, self](bool succ) {
-          if (!succ)
-            return;
-          do_read_from_out();
-          do_read_from_in();
-        });
-      });
-    });
-  }
 
   void do_read_from_out() {
     auto self(shared_from_this());
