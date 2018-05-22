@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tunbase.hpp"
 #include "socks5server.hpp"
+#include "tunbase.hpp"
 
 namespace luke {
 
@@ -10,21 +10,19 @@ using namespace boost::asio::ip;
 using namespace std;
 
 class tun_server_session
-    : public socks5_session_base,
+    : public tun_session_base,
       public std::enable_shared_from_this<tun_server_session> {
 public:
   tun_server_session(asio::io_service &io_context, tcp::socket socket)
-      : socks5_session_base(io_context, std::move(socket)) {}
+      : tun_session_base(io_context, std::move(socket)) {}
 
   void start() { handle_request(); }
 
 private:
   void handle_request() {
     auto self(shared_from_this());
-    decode_pkg(in_socket_, [this, self](bool succ, tun_pkg &pkg) {
-      if (succ) {
-        handle_command(pkg.cmd, pkg.body);
-      }
+    decode_pkg(in_socket_, [this, self](tun_pkg pkg) {
+      handle_command(pkg.cmd, pkg.body);
     });
   }
 
@@ -36,55 +34,39 @@ private:
       log_info("GET URL:", urlstr);
       string s = "<html><head><title>t</title></head><body>body</body></html>";
       bytes data = encode_pkg(OK, 0, 0, bytes_from_string(s));
-      write_to(in_socket_, data, [this, self](bool succ) {});
+      write_to(in_socket_, data, [this, self]() {});
     } else if (cmd == SOCKS_CONNECT) {
-		handle_socks5_request([this, self](bool succ, string host, string port) {
-			if (!succ) return;
-			resolve_addr(host, port, [this, self](bool succ, tcp::resolver::iterator addr_iterator) {
-				if (!succ) return;
-				connect_to(out_socket_, addr_iterator, [this, self](bool succ) {
-					if (!succ) return;
-					write_socks5_response([this, self](bool succ) {
-						if (!succ) return;
-						do_read_from_out();
-						do_read_from_in();
-					});
-				});
-			});
-		});
+      handle_socks5_request([this, self](string host, string port) {
+        connect_to(out_socket_, host, port, [this, self]() {
+          write_socks5_response([this, self]() {
+            do_read_from_out();
+            do_read_from_in();
+          });
+        });
+      });
     }
   }
 
   void do_read_from_out() {
     auto self(shared_from_this());
-    read_from(out_socket_, [this, self](bool succ, bytes &data) {
-		if (!succ) return;
-		do_write_to_in(data);
-    });
+    read_from(out_socket_, [this, self](bytes &data) { do_write_to_in(data); });
   }
 
   void do_read_from_in() {
     auto self(shared_from_this());
-    decode_pkg(in_socket_, [this, self](bool succ, tun_pkg &pkg) {
-		if (!succ) return;
-		do_write_to_out(pkg.body);
-    });
+    decode_pkg(in_socket_,
+               [this, self](tun_pkg pkg) { do_write_to_out(pkg.body); });
   }
 
   void do_write_to_in(bytes &dt) {
     auto self(shared_from_this());
     bytes relaypkg = encode_pkg(SOCKS_CONNECT, 0, 0, dt);
-    write_to(in_socket_, relaypkg,
-             [this, self](bool succ) { do_read_from_out(); });
+    write_to(in_socket_, relaypkg, [this, self]() { do_read_from_out(); });
   }
 
   void do_write_to_out(bytes &dt) {
     auto self(shared_from_this());
-    write_to(out_socket_, dt, [this, self](bool succ) {
-      if (succ) {
-        do_read_from_in();
-      }
-    });
+    write_to(out_socket_, dt, [this, self]() { do_read_from_in(); });
   }
 };
 
@@ -109,6 +91,7 @@ private:
       do_accept();
     });
   }
+
   asio::io_service &io_context_;
   tcp::acceptor acceptor_;
   tcp::socket in_socket_;

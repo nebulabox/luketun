@@ -56,20 +56,27 @@ typedef uint32_t b4;
 typedef uint64_t b8;
 
 inline void log_info(const std::string notes, const std::string msg) {
-#ifdef DEBUG
+  if (!global_config::enable_log_info) return;
   std::cout << "[INFO]" << notes << ": " << msg << std::endl;
-#endif
+}
+
+inline void log_info(std::string msg, std::error_code ec) {
+  if (!global_config::enable_log_info) return;
+  std::cerr << "[INFO]" << msg << " : " << ec.message() << std::endl;
 }
 
 inline void log_err(const std::string notes, const std::string msg) {
+  if (!global_config::enable_log_err) return;
   std::cerr << "[ERROR]" << notes << ": " << msg << std::endl;
 }
 
 inline void log_err(std::string msg) {
+  if (!global_config::enable_log_err) return;
   std::cerr << "[ERROR]" << msg << std::endl;
 }
 
 inline void log_err(std::string msg, std::error_code ec) {
+  if (!global_config::enable_log_err) return;
   std::cerr << "[ERROR]" << msg << " : " << ec.message() << std::endl;
 }
 
@@ -397,14 +404,17 @@ inline bytes bytes_from_string(const std::string &str) {
   return ret;
 }
 
-inline std::string string_from_bytes(const bytes &bs) {
+inline std::string string_from_bytes(const bytes &bs, size_t start, size_t length) {
   std::string ret;
   ret.resize(bs.size());
-  for (int i = 0; i < bs.size(); i++) {
+  for (int i = start; i < length; i++) {
     ret[i] = bs[i];
   }
-
   return ret;
+}
+
+inline std::string string_from_bytes(const bytes &bs) {
+  return string_from_bytes(bs, 0, bs.size());
 }
 
 } // namespace luke

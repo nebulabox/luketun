@@ -16,11 +16,6 @@
             "macFrameworkPath": [
                 "/System/Library/Frameworks"
             ],
-            "defines": [
-                "DEBUG",
-                "Debug=1"
-            ],
-            "compileCommands": "build/compile_commands.json",
             "browse": {
                 "path": [
                     "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1",

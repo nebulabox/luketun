@@ -4,7 +4,10 @@
 
 using namespace std;
 
-int main(int argc, char *argv[]) { 
+bool luke::global_config::enable_log_info = true;
+bool luke::global_config::enable_log_err = true;
+
+int main(int argc, char *argv[]) {
   try {
     boost::asio::io_service io_context;
 
