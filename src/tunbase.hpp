@@ -70,16 +70,11 @@ class tun_session_base {
     }
   }
 
-  void err(const std::string msg, const std::error_code ec) {
+  void err(const std::string msg, const std::error_code ec = std::error_code()) {
     close_sockets();
-    if (session_exit_handler) session_exit_handler();
-    session_exit_handler = nullptr;
     // log_info(msg, ec);
-  }
-
-  void err(const std::string msg) {
-    std::error_code ec;
-    err(msg, ec);
+    // will delete this, so must no following codes.
+    if (session_exit_handler) session_exit_handler(); 
   }
 
   void decode_pkg(tcp::socket& sk, function<void(tun_pkg pkg)> handler) {
