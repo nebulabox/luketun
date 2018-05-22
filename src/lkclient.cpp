@@ -4,7 +4,7 @@
 
 using namespace std;
 
-bool luke::global_config::enable_log_info = false;
+bool luke::global_config::enable_log_info = true;
 bool luke::global_config::enable_log_err = true;
 
 int main(int argc, char *argv[]) {
