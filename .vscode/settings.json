@@ -62,7 +62,8 @@
         "future": "cpp",
         "thread": "cpp",
         "__mutex_base": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "slist": "cpp"
     },
     "python.pythonPath": "/usr/local/bin/python",
     "C_Cpp.intelliSenseEngineFallback": "Disabled",

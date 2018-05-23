@@ -39,6 +39,30 @@
       "externalConsole": false,
       "MIMode": "lldb"
     },
+    {
+      "name": "lkclient_guardmalloc",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${env:HOME}/cmake_output/luketun/debug/lkclient",
+      "args": [ ],
+      "stopAtEntry": false,
+      "cwd": "${env:HOME}/cmake_output/luketun/debug/",
+      "environment": [{"DYLD_INSERT_LIBRARIES":"/usr/lib/libgmalloc.dylib"}],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    },
+    {
+      "name": "lkserver_guardmalloc",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${env:HOME}/cmake_output/luketun/debug/lkserver",
+      "args": [ ],
+      "stopAtEntry": false,
+      "cwd": "${env:HOME}/cmake_output/luketun/debug/",
+      "environment": [{"DYLD_INSERT_LIBRARIES":"/usr/lib/libgmalloc.dylib"}],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    },
   ]
 }
 

@@ -12,9 +12,13 @@ using namespace std;
 class socks5_server_session : public tun_session_base,
                               public std::enable_shared_from_this<socks5_server_session> {
  public:
-  ~socks5_server_session() { log_info("Dealloc", "socks5_server_session"); }
+  ~socks5_server_session() { 
+    log_info("Dealloc socks5_server_session", &out_socket_);
+  }
   socks5_server_session(asio::io_service &io_context, tcp::socket socket)
-      : tun_session_base(io_context), in_socket_(std::move(socket)), out_socket_(io_context) {}
+      : tun_session_base(io_context), in_socket_(std::move(socket)), out_socket_(io_context) {
+        log_info("New socks5_server_session", &out_socket_);
+      }
 
   void start() {
     auto self(shared_from_this());
@@ -67,17 +71,14 @@ class socks5_server {
  private:
   void do_accept() {
     acceptor_.async_accept(in_socket_, [this](std::error_code ec) {
-      if (ec) {
-        log_err("do_accept", ec);
-        return do_accept();
+      if (!ec) {
+        // start a new session to do works
+        std::make_shared<socks5_server_session>(io_context_, std::move(in_socket_))->start();
       }
-      // start a new session to do works
-      std::make_shared<socks5_server_session>(io_context_, std::move(in_socket_))->start();
       // wait for new connections
       do_accept();
     });
   }
-
   asio::io_service &io_context_;
   tcp::acceptor acceptor_;
   tcp::socket in_socket_;

@@ -4,6 +4,9 @@ project (luketun C CXX)
 set(PROJECT_VERSION "18.5.17")
 set(PROJECT_NAME luketun)
 
+#------------------------------------- Options ----------------------------------------#
+option(ENABLE_SANITIZE "Enable profiler: AddressSanitizer" OFF)
+
 #------------------------------------- Common Settings ----------------------------------------#
 set (BUILD_TYPE ${CMAKE_BUILD_TYPE})
 if (NOT CMAKE_BUILD_TYPE)
@@ -19,6 +22,7 @@ endif()
 
 # Export compile commands
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 ) 
+set( CMAKE_EXPORT_LINK_COMMANDS 1 ) 
 
 set (CMAKE_C_STANDARD 11)
 set (CMAKE_CXX_STANDARD 14)
@@ -122,6 +126,10 @@ set(DB_SRC_LIST
 	)
 add_executable(lkserver ${DB_SRC_LIST} )
 target_link_libraries (lkserver ${DEP_LIBS})
+if (ENABLE_SANITIZE)
+	target_compile_options(lkserver PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+	target_link_libraries (lkserver -fsanitize=address -fno-omit-frame-pointer)
+endif()
 
 set(DB_SRC_LIST
 	src/common.hpp
@@ -135,3 +143,7 @@ set(DB_SRC_LIST
 	)
 add_executable(lkclient ${DB_SRC_LIST} )
 target_link_libraries (lkclient ${DEP_LIBS})
+if (ENABLE_SANITIZE)
+	target_compile_options(lkclient PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+	target_link_libraries (lkclient -fsanitize=address -fno-omit-frame-pointer)
+endif()

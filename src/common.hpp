@@ -60,6 +60,11 @@ inline void log_info(const std::string notes, const std::string msg) {
   std::cout << "[INFO]" << notes << ": " << msg << std::endl;
 }
 
+inline void log_info(const std::string notes, void *pt) {
+  if (!global_config::enable_log_info) return;
+  std::cout << "[INFO]" << notes << ": " << std::hex << "0x" << (uint64_t)pt << std::endl;
+}
+
 inline void log_info(std::string msg, std::error_code ec) {
   if (!global_config::enable_log_info) return;
   std::cerr << "[INFO]" << msg << " : " << ec.message() << std::endl;
